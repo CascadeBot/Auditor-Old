@@ -25,7 +25,6 @@ function sendInvalid(res) {
 }
 
 function hasKey(req, res, next) {
-  return next(); // TODO not do this
   if (req.headers["Authorization"]) {
     if (req.headers["Authorization"] === `Bearer ${apikey}`)
       return next();
