@@ -15,7 +15,8 @@ const configPath = "../../config.json";
  */
 const configTemplate = {
   mongo: {
-    connection_string: null, // connection string, must have database included
+    connection_string: null, // connection string, MUST NOT have database name
+    dbName: null, // database name
     collections: {
       users: "users", // collection name for the dashboard user collection
       patrons: "patrons", // collection name for the patreon donators collection
