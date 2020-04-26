@@ -6,6 +6,9 @@ const refresh = require('passport-oauth2-refresh');
 const { tierEnum } = require('./tier');
 const got = require('got');
 
+const userNotFoundError = new Error("user not found");
+const userNullError = new Error("user cannot be null");
+
 async function updateSupportersForMany(guildIdArray, userId, action) {
   let query = "";
   if (action === "add") query = "$addToSet";
@@ -70,23 +73,23 @@ async function getUserGuilds(userId, {accessToken, refreshToken}) {
 }
 
 function hasFlags(user) {
-  if (!user) return false;
+  if (!user) throw userNullError;
   if (!user.flags) return false;
   if (user.flags.length === 0) return false;
   return true;
 }
 
 function hasPatreonLinked(user) {
-  if (!user) return false;
+  if (!user) throw userNullError;
   if (!user.patreon) return false;
-  if (user.patreon.isLinkedPatreon === false) return false;
+  if (!user.patreon.isLinkedPatreon) return false;
   return true;
 }
 
 function getTier(user) {
-  if (!user) return tierEnum.default;
-  if (!user.patreon) return tierEnum.default;
-  if (user.patreon.isLinkedPatreon === false) return tierEnum.default;
+  if (!user) throw userNullError;
+  if (!hasPatreonLinked(user)) return tierEnum.default;
+  if (!user.patreon.tier) return tierEnum.default;
   return user.patreon.tier;
 }
 
@@ -100,7 +103,7 @@ async function correctGuildSupporter(discordUserId) {
     { _id: Long.fromString(discordUserId) }
   );
 
-  if (!user) throw new Error("NotFound");
+  if (!user) throw userNotFoundError;
 
   const supporterGuildIds = await getSupportedGuilds(discordUserId)
 
@@ -143,7 +146,7 @@ async function correctGuildSupporter(discordUserId) {
   }
   // IF guild is only in supporterGuilds
   for (let val of supporterGuildIds) {
-    if (val) updateObj.toRemove.push(userGuild.id.toString());
+    if (val) updateObj.toRemove.push(val);
   }
 
   await Promise.all([
@@ -155,5 +158,9 @@ async function correctGuildSupporter(discordUserId) {
 module.exports = {
   correctGuildSupporter,
   getTier,
+  hasFlags,
   hasPatreonLinked,
+  getSupportedGuilds,
+  userNotFoundError,
+  userNullError
 };

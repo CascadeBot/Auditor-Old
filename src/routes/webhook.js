@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Patreon = require('../models/patreon');
-const { sendInvalid, sendResponse } = require("../helpers/utils")
+const { sendInvalid, sendResponse, hasKey } = require("../helpers/utils");
+const { patreon: patreonConfig } = require('../helpers/config');
 
 const bodyParser = require("body-parser");
 const getRaw = bodyParser.json({
@@ -25,3 +26,5 @@ router.post('/webhook/' + patreonConfig.webhook.identifier, hasKey, getRaw, asyn
   }
   return sendInvalid(res);
 });
+
+module.exports = router;

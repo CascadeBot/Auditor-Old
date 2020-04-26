@@ -2,7 +2,8 @@ const { MongoClient } = require('mongodb');
 const { mongo: mongoConfig } = require('../helpers/config');
 
 class Database {
-  constructor(url) {
+  constructor(url, dbName) {
+    this.dbname = dbName;
     this.rootClient = new MongoClient(url, {
       useUnifiedTopology: true
     });
@@ -15,10 +16,8 @@ class Database {
         if (err) return reject("Failed to connect to Mongodb");
         console.log("Connected successfully to server");
 
-        // TODO db name not in config anymore
-        this.db = client.db(mongoConfig.db_name);
+        this.db = client.db(this.dbName);
         this.users = this.db.collection(mongoConfig.collections.users);
-        this.sessions = this.db.collection(mongoConfig.collections.sessions);
         this.guilds = this.db.collection(mongoConfig.collections.guilds);
         this.patrons = this.db.collection(mongoConfig.collections.patrons);
 
@@ -34,8 +33,8 @@ function getDB() {
   return database;
 }
 
-async function setupDB() {
-  database = new Database(mongoConfig.connection_string);
+async function setupDB(connectString, dbName) {
+  database = new Database(connectString, dbName);
   await database.connect();
 }
 

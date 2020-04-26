@@ -5,7 +5,7 @@ const permissionsMap = {
 
 function hasPermission(permissions, perm) {
   if (typeof permissionsMap[perm] === "undefined") return false;
-  return permissions & permissionsMap[perm] == permissionsMap[perm];
+  return (permissions & permissionsMap[perm]) == permissionsMap[perm];
 }
 
 module.exports = {

@@ -1,6 +1,6 @@
 const adminRouter = require("../routes/admin");
 const userRouter = require("../routes/user");
-const userRouter = require("../routes/guild");
+const guildRouter = require("../routes/guild");
 const webhookRouter = require("../routes/webhook");
 const { send404 } = require("../helpers/utils");
 
