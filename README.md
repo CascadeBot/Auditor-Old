@@ -10,7 +10,7 @@ Handles patreon webhook data and updates the database accordingly.
 
 All endpoints require api key in the headers:
 ```
-Authorization: Bearer <apikey>
+authorization: Bearer <apikey>
 ```
 
 ---

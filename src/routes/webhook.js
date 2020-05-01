@@ -14,17 +14,21 @@ const getRaw = bodyParser.json({
 });
 
 router.post('/webhook/' + patreonConfig.webhook.identifier, hasKey, getRaw, async (req, res) => {
-  if (req.get("X-Patreon-Signature") &&
-    req.get("X-Patreon-Event")) {
-    await Patreon.handleWebhookResponse(
-      req.get("X-Patreon-Signature"),
-      req.get("X-Patreon-Event"),
-      req.rawBody,
-      req.body.data
-    );
-    return sendResponse(res);
+  try {
+    if (req.get("X-Patreon-Signature") &&
+      req.get("X-Patreon-Event")) {
+      await Patreon.handleWebhookResponse(
+        req.get("X-Patreon-Signature"),
+        req.get("X-Patreon-Event"),
+        req.rawBody,
+        req.body.data
+      );
+      return sendResponse(res);
+    }
+    return sendInvalid(res);
+  } catch (e) {
+    return sendInvalid(res);
   }
-  return sendInvalid(res);
 });
 
 module.exports = router;

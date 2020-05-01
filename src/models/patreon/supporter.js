@@ -91,6 +91,7 @@ async function correctGuildSupporter(discordUserId) {
   );
 
   if (!user) throw userNotFoundError;
+  if (!user.blacklist) user.blacklist = [];
 
   const supporterGuildIds = await getSupportedGuilds(discordUserId);
 
@@ -119,6 +120,8 @@ async function correctGuildSupporter(discordUserId) {
   }
 
   for (let userGuild of userGuilds) {
+    if (user.blacklist.includes(Long.fromString(userGuild.id)))
+      continue
     const guildIndex = supporterGuildIds.indexOf(userGuild.id);
     // IF guild is in both userGuilds AND supporterGuild
     if (guildIndex != -1) {
@@ -134,15 +137,18 @@ async function correctGuildSupporter(discordUserId) {
       updateObj.toAdd.push(userGuild.id.toString())
     }
   }
-  // IF guild is only in supporterGuilds
+  // IF guild is only in supporterGuilds (or blacklisted)
   for (let val of supporterGuildIds) {
     if (val) updateObj.toRemove.push(val);
   }
 
-  await Promise.all([
-    updateSupportersForMany(updateObj.toRemove, discordUserId, "remove"),
-    updateSupportersForMany(updateObj.toAdd, discordUserId, "add")
-  ])
+  const promiseArr = [];
+  if (updateObj.toRemove.length != 0)
+    promiseArr.push(updateSupportersForMany(updateObj.toRemove, discordUserId, "remove"));
+  if (updateObj.toAdd.length != 0)
+    promiseArr.push(updateSupportersForMany(updateObj.toAdd, discordUserId, "add"));
+  if (promiseArr.length != 0)
+    await Promise.all(promiseArr);
 }
 
 module.exports = {

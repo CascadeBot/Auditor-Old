@@ -16,17 +16,17 @@ function send401(res) {
   });
 }
 
-function sendInvalid(res) {
+function sendInvalid(res, err) {
   res.status(400).json({
     code: 400,
     success: false,
-    error: "Invalid request"
+    error: err ? err : "Invalid request"
   });
 }
 
 function hasKey(req, res, next) {
-  if (req.headers["Authorization"]) {
-    if (req.headers["Authorization"] === `Bearer ${apikey}`)
+  if (req.headers["authorization"]) {
+    if (req.headers["authorization"] === `Bearer ${apikey}`)
       return next();
   }
   return send401(res);

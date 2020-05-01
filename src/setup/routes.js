@@ -3,8 +3,10 @@ const userRouter = require("../routes/user");
 const guildRouter = require("../routes/guild");
 const webhookRouter = require("../routes/webhook");
 const { send404 } = require("../helpers/utils");
+const express = require("express");
 
 function setupRoutes(app) {
+  app.use(express.json());
   app.use("/", adminRouter);
   app.use("/user/:userid", userRouter);
   app.use("/guild/:guildid", guildRouter);
