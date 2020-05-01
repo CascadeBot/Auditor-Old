@@ -72,5 +72,5 @@ module.exports = {
   verifyWebhookSignature,
   handleWebhookResponse,
   correctGuildSupporter,
-  testWebhook
+  // testWebhook
 };

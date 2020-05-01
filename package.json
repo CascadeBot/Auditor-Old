@@ -19,6 +19,7 @@
   "homepage": "https://github.com/CascadeBot/PatreonHandler#readme",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "discord-user-js": "git+https://github.com/CascadeBot/discord-user-js.git",
     "express": "^4.17.1",
     "got": "^10.7.0",
     "mongodb": "^3.5.6",

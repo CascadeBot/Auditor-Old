@@ -1,0 +1,23 @@
+const { DiscordCore, DiscordHooks } = require("discord-user-js");
+const { discord: discordConfig } = require("../helpers/config");
+const { getDB } = require("./db");
+
+function setupDiscord() {
+  DiscordCore.setCredentials(discordConfig);
+  DiscordCore.addHook(DiscordHooks.tokenUpdate,
+    async ({accessToken, refreshToken, userId}) => {
+      const updated = await getDB().users.findOneAndUpdate({
+        _id: userId
+      }, {
+        accessToken,
+        refreshToken
+      });
+      if (!updated)
+        throw new Error("Failed to update user");
+    }
+  );
+}
+
+module.exports = {
+  setupDiscord,
+};

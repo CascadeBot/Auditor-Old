@@ -3,8 +3,17 @@ const { correctGuildSupporter,
 const { setupDB, getDB } = require('../src/setup/db');
 const { Long } = require("mongodb");
 
-const got = require('got');
-jest.mock('got');
+const { DiscordUser } = require("discord-user-js");
+const mockGetUserGuilds = jest.fn();
+jest.mock('discord-user-js', () => {
+  return {
+    DiscordUser: jest.fn().mockImplementation(() => {
+      return {
+        getUserGuilds: mockGetUserGuilds
+      };
+    })
+  }
+});
 
 // TODO test getUserGuilds
 // # getUserGuilds(userId, {accessToken, refreshToken})
@@ -86,7 +95,7 @@ const makeDiscordGuild = (id, hasperms = false) => ({
   permissions: hasperms ? 24 : 0
 })
 
-function gotBody(hasPerms) {
+function discordBody(hasPerms) {
   return {
     body: [
       ...isSupport.map(id => makeDiscordGuild(id.toString(), hasPerms)),
@@ -166,7 +175,7 @@ describe("correctGuildSupporter", () => {
 
   async function guildSupporterTest(user, body, mockguildsHasSupporters) {
     await makeUser(user);
-    got.mockResolvedValue(body);
+    mockGetUserGuilds.mockResolvedValue(body);
 
     await correctGuildSupporter(userID.toString());
 
@@ -176,35 +185,35 @@ describe("correctGuildSupporter", () => {
 
   // checking section one and two
   it("user no tier, no flags - should be removed from supporters", async () => {
-    await guildSupporterTest(userWithout, gotBody(true), false);
+    await guildSupporterTest(userWithout, discordBody(true), false);
   })
 
   it("user default tier, no flags - should be removed from supporters", async () => {
-    await guildSupporterTest(userWithDefaultTier, gotBody(true), false);
+    await guildSupporterTest(userWithDefaultTier, discordBody(true), false);
   })
 
   it("user no tier, has flags - should be added to supporters", async () => {
-    await guildSupporterTest(userWithFlags, gotBody(true), true);
+    await guildSupporterTest(userWithFlags, discordBody(true), true);
   })
 
   it("user with tier, no flags - should be added to supporters", async () => {
-    await guildSupporterTest(userWithTier, gotBody(true), true);
+    await guildSupporterTest(userWithTier, discordBody(true), true);
   })
 
   it("user with tier, has flags - should be added to supporters", async () => {
-    await guildSupporterTest(userFull, gotBody(true), true);
+    await guildSupporterTest(userFull, discordBody(true), true);
   })
 
   // user, guild in user and supporter, remove supporter if NO perms
   // user, guild in user and no supporter, do nothing if NO perms
   it("full user - no perms - has user guilds", async () => {
-    await guildSupporterTest(userFull, gotBody(false), false);
+    await guildSupporterTest(userFull, discordBody(false), false);
   })
 
   // user, guild in user and supporter, do nothing if HAS perms
   // user, guild in user and no supporter, add supporter if HAS perms
   it("full user - has perms - has user guilds", async () => {
-    await guildSupporterTest(userFull, gotBody(false), false);
+    await guildSupporterTest(userFull, discordBody(false), false);
   })
 
   // user, guild in no user and is supporter, remove supporter

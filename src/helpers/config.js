@@ -16,7 +16,7 @@ const configPath = "../../config.json";
 const configTemplate = {
   mongo: {
     connection_string: null, // connection string, MUST NOT have database name
-    dbName: null, // database name
+    db_name: null, // database name
     collections: {
       users: "users", // collection name for the dashboard user collection
       patrons: "patrons", // collection name for the patreon donators collection
@@ -25,6 +25,9 @@ const configTemplate = {
   },
   discord: {
     api_host: "https://discordapp.com/api/v6", // discord api host
+    user_scopes: null,
+    client_id: null,
+    client_secret: null,
   },
   patreon: {
     auth_url: "https://www.patreon.com/oauth2/authorize", // patreon oauth auth url

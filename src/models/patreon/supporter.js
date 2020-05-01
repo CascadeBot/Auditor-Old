@@ -5,9 +5,11 @@ const { hasPermission } = require('../../helpers/discord');
 const refresh = require('passport-oauth2-refresh');
 const { tierEnum } = require('./tier');
 const got = require('got');
+const { DiscordUser } = require("discord-user-js");
 
 const userNotFoundError = new Error("user not found");
 const userNullError = new Error("user cannot be null");
+const discordCallError = new Error("Discord failed to be called");
 
 async function updateSupportersForMany(guildIdArray, userId, action) {
   let query = "";
@@ -36,40 +38,25 @@ async function getSupportedGuilds(userId) {
 }
 
 async function getUserGuilds(userId, {accessToken, refreshToken}) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const response = await got(`${discordConfig.api_host}/users/@me/guilds`, {
-        headers: {
-          'Authorization': 'Bearer ' + accessToken
-        },
-        responseType: 'json',
-      });
-      return resolve(response.body);
-    } catch (e) {
-      try {
-        refresh.requestNewAccessToken('discord', refreshToken, async function(err, newAccessToken, newRefreshToken) {
-          if (err) throw new Error("Refresh failed");
-          await getDB().users.updateOne({
-            _id: Long.fromString(userId)
-          }, {
-            $set: {
-              accessToken: newAccessToken,
-              refreshToken: newRefreshToken,
-            }
-          });
-          const response = await got(`${discordConfig.api_host}/users/@me/guilds`, {
-            headers: {
-              'Authorization': 'Bearer ' + newAccessToken
-            },
-            responseType: 'json',
-          });
-          return resolve(response.body);
-        });
-      } catch (err) {
-        reject(err);
-      }
-    }
-  });
+  try {
+    const user = new DiscordUser({
+      accessToken,
+      refreshToken,
+      scopes: discordConfig.userScopes,
+      userId
+    });
+    const guilds = await user.getUserGuilds();
+    if (guilds === false)
+      return false;
+    return guilds.body;
+  } catch(e) {
+    console.log(e);
+    // TODO handle errors
+    // -> discord account deleted
+    // -> connection error
+    // -> revoked tokens
+    return false;
+  }
 }
 
 function hasFlags(user) {
@@ -105,7 +92,7 @@ async function correctGuildSupporter(discordUserId) {
 
   if (!user) throw userNotFoundError;
 
-  const supporterGuildIds = await getSupportedGuilds(discordUserId)
+  const supporterGuildIds = await getSupportedGuilds(discordUserId);
 
   // If user is unlinked and doesn't have flags but still supporting a guild, yeet em out
   if (!hasFlags(user) && !hasPatreonLinked(user)) {
@@ -122,7 +109,10 @@ async function correctGuildSupporter(discordUserId) {
   }
 
   // loop over guilds and update supporters array accordingly
-  const userGuilds = await getUserGuilds(user._id.toString(), user)
+  const userGuilds = await getUserGuilds(user._id.toString(), user);
+  if (userGuilds === false)
+    throw discordCallError;
+
   const updateObj = {
     toRemove: [],
     toAdd: [],

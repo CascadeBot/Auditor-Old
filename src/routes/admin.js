@@ -2,12 +2,6 @@ const express = require("express");
 const router = express.Router();
 const { sendResponse, hasKey } = require("../helpers/utils")
 
-router.get("/test", hasKey, (req, res) => {
-  sendResponse(res, {
-    test: true
-  });
-});
-
 router.post("/refresh", hasKey, (req, res) => {
   // IF patreon === true:
   // ---> get patreon data and store in patron collection
