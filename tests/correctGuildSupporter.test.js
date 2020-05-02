@@ -30,7 +30,8 @@ const userWithout = {
   patreon: {
     isLinkedPatreon: false,
     tier: tierEnum.default
-  }
+  },
+  blacklist: []
 }
 
 const userWithDefaultTier = {
@@ -40,7 +41,8 @@ const userWithDefaultTier = {
   patreon: {
     isLinkedPatreon: true,
     tier: tierEnum.default
-  }
+  },
+  blacklist: []
 }
 
 const userWithTier = {
@@ -50,7 +52,8 @@ const userWithTier = {
   patreon: {
     isLinkedPatreon: true,
     tier: tierEnum.medium
-  }
+  },
+  blacklist: []
 }
 
 const userWithFlags = {
@@ -61,7 +64,8 @@ const userWithFlags = {
   patreon: {
     isLinkedPatreon: false,
     tier: tierEnum.default
-  }
+  },
+  blacklist: []
 }
 
 const userFull = {
@@ -72,7 +76,32 @@ const userFull = {
   patreon: {
     isLinkedPatreon: true,
     tier: tierEnum.hardcode
-  }
+  },
+  blacklist: []
+}
+
+const userBlacklist = {
+  _id: Long.fromNumber(userID),
+  accessToken: "access",
+  refreshToken: "refresh",
+  flags: ["FLAG"],
+  patreon: {
+    isLinkedPatreon: true,
+    tier: tierEnum.hardcode
+  },
+  blacklist: [Long.fromNumber(201), Long.fromNumber(202)]
+}
+
+const userBlacklistTwo = {
+  _id: Long.fromNumber(userID),
+  accessToken: "access",
+  refreshToken: "refresh",
+  flags: ["FLAG"],
+  patreon: {
+    isLinkedPatreon: true,
+    tier: tierEnum.hardcode
+  },
+  blacklist: [Long.fromNumber(211), Long.fromNumber(212)]
 }
 
 const isSupport = [
@@ -109,10 +138,18 @@ const mockGuilds = [
   ...noSupport.map(id => makeGuild(Long.fromNumber(id)))
 ]
 
-function getMockGuilds(hasSupporters) {
+function idInBlacklist(blacklist, id) {
+  for (let item of blacklist) {
+    if (item.toString() === id.toString())
+      return true;
+  }
+  return false
+}
+
+function getMockGuilds(hasSupporters, blacklist) {
   return [
-    ...isSupport.map(id => makeGuild(id, hasSupporters ? [userID] : undefined)),
-    ...noSupport.map(id => makeGuild(id, hasSupporters ? [userID] : undefined))
+    ...isSupport.map(id => makeGuild(id, (hasSupporters && !idInBlacklist(blacklist, id)) ? [userID] : undefined)),
+    ...noSupport.map(id => makeGuild(id, (hasSupporters && !idInBlacklist(blacklist, id)) ? [userID] : undefined))
   ]
 }
 
@@ -126,6 +163,8 @@ function prepareDB() {
   })
 
   afterAll(async () => {
+    await getDB().users.deleteMany({});
+    await getDB().guilds.deleteMany({});
     await getDB().rootClient.close();
   })
 
@@ -180,7 +219,7 @@ describe("correctGuildSupporter", () => {
     await correctGuildSupporter(userID.toString());
 
     const guilds = await (await getDB().guilds.find({})).toArray();
-    expect(guilds).toEqual(getMockGuilds(mockguildsHasSupporters));
+    expect(guilds).toEqual(getMockGuilds(mockguildsHasSupporters, user.blacklist));
   }
 
   // checking section one and two
@@ -202,6 +241,14 @@ describe("correctGuildSupporter", () => {
 
   it("user with tier, has flags - should be added to supporters", async () => {
     await guildSupporterTest(userFull, discordBody(true), true);
+  })
+
+  it("user with tier, has flags - opted out - test one", async () => {
+    await guildSupporterTest(userBlacklist, discordBody(true), true);
+  })
+
+  it("user with tier, has flags - opted out - test two", async () => {
+    await guildSupporterTest(userBlacklistTwo, discordBody(true), true);
   })
 
   // user, guild in user and supporter, remove supporter if NO perms

@@ -53,6 +53,8 @@ function prepareDB() {
   })
 
   afterAll(async () => {
+    await getDB().users.deleteMany({});
+    await getDB().guilds.deleteMany({});
     await getDB().rootClient.close();
   })
 
@@ -128,7 +130,7 @@ describe('user opt out', () => {
       success: true
     });
 
-    checkUser(getMockUser([123, 567]));
+    await checkUser(getMockUser([123, 567]));
     expect(mockCorrectGuildSupporter).toBeCalled();
   });
 
@@ -142,7 +144,7 @@ describe('user opt out', () => {
       success: true
     });
 
-    checkUser(getMockUser([123]));
+    await checkUser(getMockUser([123]));
     expect(mockCorrectGuildSupporter).toBeCalled();
   });
 });
@@ -174,7 +176,7 @@ describe('user opt back in', () => {
       success: true
     });
 
-    checkUser(getMockUser([]));
+    await checkUser(getMockUser([]));
     expect(mockCorrectGuildSupporter).toBeCalled();
   });
 
@@ -188,7 +190,7 @@ describe('user opt back in', () => {
       success: true
     });
 
-    checkUser(getMockUser([123]));
+    await checkUser(getMockUser([123]));
     expect(mockCorrectGuildSupporter).toBeCalled();
   });
 });

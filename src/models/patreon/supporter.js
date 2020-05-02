@@ -91,7 +91,9 @@ async function correctGuildSupporter(discordUserId) {
   );
 
   if (!user) throw userNotFoundError;
+
   if (!user.blacklist) user.blacklist = [];
+  let blacklist = user.blacklist.map((val) => val.toString());
 
   const supporterGuildIds = await getSupportedGuilds(discordUserId);
 
@@ -120,7 +122,7 @@ async function correctGuildSupporter(discordUserId) {
   }
 
   for (let userGuild of userGuilds) {
-    if (user.blacklist.includes(Long.fromString(userGuild.id)))
+    if (blacklist.includes(userGuild.id))
       continue
     const guildIndex = supporterGuildIds.indexOf(userGuild.id);
     // IF guild is in both userGuilds AND supporterGuild

@@ -3,6 +3,8 @@ const router = express.Router();
 const { sendResponse, hasKey } = require("../helpers/utils")
 
 router.post("/refresh", hasKey, (req, res) => {
+  // TODO
+  // also fire on refresh
   // IF patreon === true:
   // ---> get patreon data and store in patron collection
   //    > update user if patron doc has user attached

@@ -59,6 +59,8 @@ function prepareDB() {
   })
 
   afterAll(async () => {
+    await getDB().users.deleteMany({});
+    await getDB().guilds.deleteMany({});
     await getDB().rootClient.close();
   })
 
@@ -96,7 +98,7 @@ function allTests(path, mockFunc, checker, checkUpdate) {
       error: "Invalid request"
     });
 
-    checker(mockFunc(true));
+    await checker(mockFunc(true));
     expect(mockCorrectGuildSupporter).not.toBeCalled();
   });
 
@@ -114,7 +116,7 @@ function allTests(path, mockFunc, checker, checkUpdate) {
       error: "Not found"
     });
 
-    checker(mockFunc(true));
+    await checker(mockFunc(true));
     expect(mockCorrectGuildSupporter).not.toBeCalled();
   });
 
@@ -257,7 +259,7 @@ describe('user flags', () => {
       error: "Not found"
     });
 
-    checkUser(getMockUser(true, false, false, true));
+    await checkUser(getMockUser(true, false, false, true));
     expect(mockCorrectGuildSupporter).not.toBeCalled();
   });
 
