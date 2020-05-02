@@ -13,6 +13,69 @@ All endpoints require api key in the headers:
 authorization: Bearer <apikey>
 ```
 
+# responses
+
+All endpoints respond with json.
+
+**Note:** error messages can vary depending on what went wrong, depend on status code as primary source and error message as detail.
+## success
+
+Currently no endpoints use the data field
+
+status: `200`
+```JSON
+{
+    "status": 200,
+    "success": true,
+    "?data": "this field is context specific"
+}
+```
+
+
+## data not found
+
+status: `404`
+```JSON
+{
+    "status": 404,
+    "success": false,
+    "error": "Not found"
+}
+```
+
+## invalid request
+
+status: `400`
+```JSON
+{
+    "status": 400,
+    "success": false,
+    "error": "Invalid request"
+}
+```
+
+## api key invalid or missing
+
+status: `401`
+```JSON
+{
+    "status": 401,
+    "success": false,
+    "error": "Not authorized"
+}
+```
+
+## internal server error
+
+status: `500`
+```JSON
+{
+    "status": 500,
+    "success": false,
+    "error": "Internal server error"
+}
+```
+
 ---
 
 ### POST **/user/:userid/update**
