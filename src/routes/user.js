@@ -1,15 +1,20 @@
 const express = require("express");
-const router = express.Router();
-const { sendResponse, send404, hasKey } = require("../helpers/utils");
+const router = express.Router({mergeParams: true});
+const { sendResponse, send404, hasKey, sendInvalid, sendError } = require("../helpers/utils");
+const { getDB } = require("../setup/db");
 const { Long } = require("mongodb");
+const { correctGuildSupporter, userNotFoundError } = require("../models/patreon/supporter");
 
 const bodyParser = require("body-parser");
 router.use(bodyParser.json());
 
 router.post("/update", hasKey, async (req, res) => {
   try {
-    await correctGuildSupporter(userid);
+    await correctGuildSupporter(req.params.userid);
   } catch (e) {
+    if (e === userNotFoundError) {
+      return send404(res);
+    }
     return sendError(res);
   }
   sendResponse(res);
@@ -28,7 +33,7 @@ router.delete("/guilds/:guildid", hasKey, async (req, res) => {
       blacklist: Long.fromString(guildid)
     }
   });
-  if (!oldUser) {
+  if (!oldUser || oldUser.value === null) {
     return send404(res);
   }
   try {
@@ -52,7 +57,7 @@ router.post("/guilds/:guildid", hasKey, async (req, res) => {
       blacklist: Long.fromString(guildid)
     }
   });
-  if (!oldUser) {
+  if (!oldUser || oldUser.value === null) {
     return send404(res);
   }
   try {
@@ -64,7 +69,7 @@ router.post("/guilds/:guildid", hasKey, async (req, res) => {
 });
 
 router.patch("/flags", hasKey, async (req, res) => {
-  // TODO make sure it logged into dashboard
+  // TODO gifting system
   const { userid } = req.params;
   if (!req.body || Object.keys(req.body).length == 0) return sendInvalid(res);
   let { add, remove, clear } = req.body
@@ -76,7 +81,10 @@ router.patch("/flags", hasKey, async (req, res) => {
   let querycount = 0;
   if (clear === true) {
     bulk.find({
-      _id: Long.fromString(userid)
+      _id: Long.fromString(userid),
+      accessToken: {
+        $exists: true
+      }
     }).updateOne({
       $set: {
         flags: add
@@ -85,14 +93,20 @@ router.patch("/flags", hasKey, async (req, res) => {
     querycount = 1;
   } else {
     bulk.find({
-      _id: Long.fromString(userid)
+      _id: Long.fromString(userid),
+      accessToken: {
+        $exists: true
+      }
     }).updateOne({
       $pullAll: {
         flags: remove
       }
     });
     bulk.find({
-      _id: Long.fromString(userid)
+      _id: Long.fromString(userid),
+      accessToken: {
+        $exists: true
+      }
     }).updateOne({
       $addToSet: {
         flags: {
@@ -105,6 +119,11 @@ router.patch("/flags", hasKey, async (req, res) => {
   const bulkRes = await bulk.execute();
   if (bulkRes.nMatched != querycount) {
     return send404(res);
+  }
+  try {
+    await correctGuildSupporter(userid)
+  } catch (e) {
+    return sendError(res);
   }
   sendResponse(res);
 });
