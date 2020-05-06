@@ -42,7 +42,7 @@ async function getUserGuilds(userId, {accessToken, refreshToken}) {
     const user = new DiscordUser({
       accessToken,
       refreshToken,
-      scopes: discordConfig.userScopes,
+      scopes: discordConfig.user_scopes,
       userId
     });
     const guilds = await user.getUserGuilds();
