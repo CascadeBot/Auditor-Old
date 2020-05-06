@@ -4,11 +4,76 @@ const { sendResponse, send404, hasKey, sendInvalid, sendError } = require("../he
 const { getDB } = require("../setup/db");
 const { Long } = require("mongodb");
 const { correctGuildSupporter, userNotFoundError } = require("../models/patreon/supporter");
+const { getHighestTier, tierEnum } = require("../models/patreon/tier");
 
 const bodyParser = require("body-parser");
 router.use(bodyParser.json());
+router.use(hasKey);
 
-router.post("/update", hasKey, async (req, res) => {
+router.post("/link/:patreonid", async (req, res) => {
+  const { userid, patreonid } = req.params;
+
+  if (!userid || !patreonid) {
+    return sendInvalid(res);
+  }
+
+  try {
+    let patron = await getDB().patrons.findOne(
+      { _id: patreonid }
+    );
+
+    if (!patron) {
+      patron = {};
+      patron.tiers = [];
+    }
+    const tier = getHighestTier(patron.tiers);
+    const user = await getDB().users.findOneAndUpdate(
+      { _id: Long.fromString(userid) },
+      {
+        $set: {
+          'patreon.tier': tier
+        }
+      }
+    );
+    if (!user.value) {
+      return send404(res);
+    }
+    await correctGuildSupporter(userid);
+  } catch (e) {
+    console.log(e);
+    return sendError(res);
+  }
+  sendResponse(res);
+});
+
+router.post("/unlink", async (req, res) => {
+  const { userid } = req.params;
+
+  if (!userid) {
+    return sendInvalid(res);
+  }
+
+  try {
+    const user = await getDB().users.findOneAndUpdate(
+      { _id: Long.fromString(userid) },
+      {
+        $set: {
+          'patreon.isLinkedPatreon': false,
+          'patreon.tier': tierEnum.default
+        }
+      }
+    );
+    if (!user.value) {
+      return send404(res);
+    }
+    await correctGuildSupporter(userid);
+  } catch (e) {
+    return sendError(res);
+  }
+  sendResponse(res);
+});
+
+router.post("/update", async (req, res) => {
   try {
     await correctGuildSupporter(req.params.userid);
   } catch (e) {
@@ -20,7 +85,7 @@ router.post("/update", hasKey, async (req, res) => {
   sendResponse(res);
 });
 
-router.delete("/guilds/:guildid", hasKey, async (req, res) => {
+router.delete("/guilds/:guildid", async (req, res) => {
   const { userid, guildid } = req.params
 
   if (!userid || !guildid) {
@@ -44,7 +109,7 @@ router.delete("/guilds/:guildid", hasKey, async (req, res) => {
   sendResponse(res);
 });
 
-router.post("/guilds/:guildid", hasKey, async (req, res) => {
+router.post("/guilds/:guildid", async (req, res) => {
   const { userid, guildid } = req.params
 
   if (!userid || !guildid) {
@@ -68,7 +133,7 @@ router.post("/guilds/:guildid", hasKey, async (req, res) => {
   sendResponse(res);
 });
 
-router.patch("/flags", hasKey, async (req, res) => {
+router.patch("/flags", async (req, res) => {
   // TODO gifting system
   const { userid } = req.params;
   if (!req.body || Object.keys(req.body).length == 0) return sendInvalid(res);
