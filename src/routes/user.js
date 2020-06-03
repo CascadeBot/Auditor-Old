@@ -186,6 +186,7 @@ router.patch("/flags", async (req, res) => {
     return send404(res);
   }
   try {
+    // TODO if modlog flag gets changed, force modlog
     await correctGuildSupporter(userid)
   } catch (e) {
     return sendError(res);

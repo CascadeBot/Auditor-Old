@@ -51,10 +51,6 @@ async function getUserGuilds(userId, {accessToken, refreshToken}) {
     return guilds.body;
   } catch(e) {
     console.log(e);
-    // TODO handle errors
-    // -> discord account deleted
-    // -> connection error
-    // -> revoked tokens
     return false;
   }
 }

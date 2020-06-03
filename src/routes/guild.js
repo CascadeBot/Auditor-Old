@@ -46,6 +46,7 @@ router.patch("/flags", hasKey, async (req, res) => {
   if (bulkRes.nMatched != querycount) {
     return send404(res);
   }
+  // TODO if modlog flag gets changed, force modlog
   sendResponse(res);
 });
 

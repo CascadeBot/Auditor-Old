@@ -57,6 +57,7 @@ async function handleWebhookResponse(signature, event, rawdata, data) {
       returnOriginal: false
     }
   );
+  // TODO force modlog change
   if (user.value) correctGuildSupporter(user.value._id.toString());
 }
 
