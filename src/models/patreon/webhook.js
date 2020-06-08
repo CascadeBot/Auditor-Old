@@ -1,7 +1,7 @@
 const { getDB } = require('../../setup/db');
 const { patreon: patreonConfig } = require('../../helpers/config');
 const { getHighestTier, tierMap } = require('./tier');
-const { correctGuildSupporter } = require('./supporter');
+const { updateGuildSupporter } = require("../../logic/supporter/guildSupporter");
 const crypto = require('crypto');
 
 const events = [
@@ -57,21 +57,12 @@ async function handleWebhookResponse(signature, event, rawdata, data) {
       returnOriginal: false
     }
   );
-  // TODO force modlog change
-  if (user.value) correctGuildSupporter(user.value._id.toString());
-}
 
-// test function
-async function testWebhook(testnum) {
-  if (testnum == 1)
-    await handleWebhookResponse(true, "members:pledge:create", true, require("../../../tests/pledge-create.json").data);
-  else if (testnum == 2)
-    await handleWebhookResponse(true, "members:update", true, require("../../../tests/pledge-refund.json").data);
+  if (user.value)
+    updateGuildSupporter(user.value._id.toString(), undefined, true);
 }
 
 module.exports = {
   verifyWebhookSignature,
-  handleWebhookResponse,
-  correctGuildSupporter,
-  // testWebhook
+  handleWebhookResponse
 };
