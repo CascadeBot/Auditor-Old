@@ -39,7 +39,7 @@ async function gatherGuilds(session, guildIds = []) {
   // gather users that are supporting the guilds
   const userCursor = await getDB().users.find({
     supporting: {
-      elemMatch: {
+      $elemMatch: {
         $in: guildIds
       }
     }
@@ -49,9 +49,9 @@ async function gatherGuilds(session, guildIds = []) {
   const out = {};
 
   // set initial value for all guilds
-  for (let guildId of guildsIds) {
-    out[guildId] = {
-      id: guildId,
+  for (let guildId of guildIds) {
+    out[guildId.toString()] = {
+      id: guildId.toString(),
       supporters: [],
       flags: []
     }
@@ -69,12 +69,15 @@ async function gatherGuilds(session, guildIds = []) {
     if (!user.supporting)
       continue;
     const toPush = {
-      id: user._id,
+      id: user._id.toString(),
       tier: getTier(user),
       flags: hasGuildFlags(user) ? user.flags : []
     }
     user.supporting.forEach(
-      guildId => out[guildId].supporters.push(toPush)
+      guildId => {
+        if (out[guildId.toString()])
+          out[guildId.toString()].supporters.push(toPush)
+      }
     );
   }
 
@@ -91,5 +94,6 @@ async function updateGuildDataForGuildIds(session, guildIds = []) {
 
 module.exports = {
   updateGuildDataForMany,
-  updateGuildDataForGuildIds
+  updateGuildDataForGuildIds,
+  gatherGuilds
 }

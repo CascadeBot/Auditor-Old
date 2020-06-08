@@ -1,3 +1,5 @@
+const { tierEnum } = require("../../models/patreon/tier");
+
 const userNullError = new Error("user cannot be null");
 
 // TODO only check guild scope

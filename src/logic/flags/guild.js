@@ -1,4 +1,4 @@
-const { updateFlags } = require("./flags");
+const { updateFlags } = require("./updateflags");
 const { getDB } = require("../../setup/db");
 
 async function updateGuildFlags(guildId, clear, add, remove) {

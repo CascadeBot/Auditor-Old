@@ -2,7 +2,7 @@ const { getDB } = require('../../setup/db');
 const { Long } = require('mongodb');
 const { discord: discordConfig } = require('../../helpers/config');
 const { hasPermission } = require('../../helpers/discord');
-const { tierEnum } = require('./tier');
+const { tierEnum } = require('../../models/patreon/tier');
 const { DiscordUser } = require("discord-user-js");
 const { getTier, hasGuildFlags, hasPatreonLinked } = require("../user/user");
 
@@ -58,10 +58,12 @@ async function getIncorrectSupportingFromUser(session, userId) {
     toAdd: []
   }
 
+  let supporterGuildIds = [...supporting];
+
   for (let userGuild of userGuilds) {
     if (blacklist.includes(userGuild.id))
       continue
-    const guildIndex = supporting.indexOf(userGuild.id);
+    const guildIndex = supporterGuildIds.indexOf(userGuild.id);
     // IF guild is in both userGuilds AND supporterGuild
     if (guildIndex != -1) {
       supporterGuildIds[guildIndex] = undefined;
@@ -91,5 +93,6 @@ async function getIncorrectSupportingFromUser(session, userId) {
 }
 
 module.exports = {
-  getIncorrectSupportingFromUser
+  getIncorrectSupportingFromUser,
+  userNotFoundError
 };

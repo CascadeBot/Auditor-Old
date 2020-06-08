@@ -5,9 +5,9 @@ const { updateGuildDataForGuildIds } = require("../guilddata");
 async function updateGuildSupporter(userId, action, hasFlagChange) {
   // start db transaction
   const session = getDB().client.startSession();
-  session.startTransaction();
 
   try {
+    session.startTransaction();
 
     // 1. call action
     if (action)
@@ -25,13 +25,13 @@ async function updateGuildSupporter(userId, action, hasFlagChange) {
 
     // commit transaction
     await session.commitTransaction();
-    session.endSession();
   } catch (e) {
     // something went wrong, abort
     await session.abortTransaction();
-    session.endSession();
 
     throw e;
+  } finally {
+    session.endSession();
   }
 }
 

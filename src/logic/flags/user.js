@@ -1,4 +1,4 @@
-const { updateFlags } = require("./flags");
+const { updateFlags } = require("./updateflags");
 const { getDB } = require("../../setup/db");
 
 async function updateUserFlags(userId, clear, add, remove) {
