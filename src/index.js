@@ -17,5 +17,5 @@ async function init() {
 }
 
 init().catch((reason) => {
-  console.error(reason);
+  console.error("Error starting webserver:", reason);
 });

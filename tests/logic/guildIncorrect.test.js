@@ -1,5 +1,6 @@
 // guild incorrect
-const { getIncorrectSupportingFromUser, userNotFoundError } = require('../../src/logic/supporter/guildIncorrect');
+const { getIncorrectSupportingFromUser } = require('../../src/logic/supporter/guildIncorrect');
+const { userNotFoundError } = require("../../src/helpers/errors");
 const { tierEnum } = require('../../src/models/patreon/tier');
 const { setupDB, getDB } = require('../../src/setup/db');
 const { Long } = require("mongodb");
@@ -139,7 +140,7 @@ describe("getIncorrectSupportingFromUser", () => {
   // basic tests
   it("throws error when user doesn't exist", async () => {
     expect(getIncorrectSupportingFromUser(undefined, userNotExistID.toString()))
-      .rejects.toEqual(userNotFoundError)
+      .rejects.toEqual(new Error(userNotFoundError))
   })
 
   // basic functionality

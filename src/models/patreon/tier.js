@@ -14,6 +14,29 @@ const tierEnumCaps = {
   hardcode: "HARDCODE"
 }
 
+// TODO make actual data
+const tierFlags = {
+  default: [{
+    name: "defaultflag",
+    scope: "guild"
+  }, {
+    name: "defaultuserflag",
+    scope: "user"
+  }],
+  cheap: [{
+    name: "cheapflag",
+    scope: "guild"
+  }],
+  medium: [{
+    name: "mediumflag",
+    scope: "guild"
+  }],
+  hardcode: [{
+    name: "hardcodeflag",
+    scope: "guild"
+  }]
+}
+
 let tierMap = {};
 tierMap[patreonConfig.tiers.cheap] = tierEnum.cheap;
 tierMap[patreonConfig.tiers.medium] = tierEnum.medium;
@@ -31,5 +54,6 @@ module.exports = {
   tierEnum,
   tierEnumCaps,
   tierMap,
+  tierFlags,
   getHighestTier
 }
