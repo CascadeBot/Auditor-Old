@@ -8,13 +8,18 @@ function setupDiscord() {
   DiscordCore.addHook(DiscordHooks.tokenUpdate,
     async ({accessToken, refreshToken, userId}) => {
       const updated = await getDB().users.findOneAndUpdate({
-        _id: Long.from(userId)
-      }, {
-        accessToken,
-        refreshToken
-      });
-      if (!updated)
-        throw new Error("Failed to update user");
+          _id: Long.fromString(userId)
+        }, {
+          $set: {
+            accessToken,
+            refreshToken
+          }
+        });
+      if (!updated) {
+        const e = new Error("Failed to update user tokens");
+        console.error(e);
+        throw e;
+      }
     }
   );
 }

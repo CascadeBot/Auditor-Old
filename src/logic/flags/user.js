@@ -1,6 +1,7 @@
 const { updateFlags } = require("./updateflags");
 const { updateGuildSupporter } = require("../supporter/guildSupporter");
 const { getDB } = require("../../setup/db");
+const { unknownError } = require("../../helpers/errors");
 
 async function updateUserFlags(userId, clear, add, remove) {
   // TODO optimisation: only call update if
@@ -16,7 +17,7 @@ async function updateUserFlags(userId, clear, add, remove) {
         }
       }, {clear, add, remove});
       if (!res)
-        throw new Error("Something went wrong!");
+        throw new Error(unknownError);
     },
     true
   )

@@ -1,5 +1,8 @@
 const { updateFlags } = require("./updateflags");
 const { getDB } = require("../../setup/db");
+const { unknownError } = require("../../helpers/errors");
+
+const { updateGuildDataForGuildIds } = require("../guilddata/update");
 
 async function updateGuildFlags(guildId, clear, add, remove) {
 
@@ -10,10 +13,11 @@ async function updateGuildFlags(guildId, clear, add, remove) {
 
     const res = await updateFlags(session, getDB().guilds, "flags", guildId, {}, {clear, add, remove});
     if (!res)
-      throw new Error("Something went wrong!");
+      throw new Error(unknownError);
 
     await updateGuildDataForGuildIds(session, [guildId]);
 
+    await session.commitTransaction();
   } catch (e) {
     // something went wrong, abort
     await session.abortTransaction();

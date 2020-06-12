@@ -1,4 +1,4 @@
-function updateSupportersForGuilds(session, guildIds, userId, action) {
+async function updateSupportersForGuilds(session, guildIds, userId, action) {
   // determine action
   let query = "";
   if (action === "add") query = "$addToSet";
@@ -12,7 +12,7 @@ function updateSupportersForGuilds(session, guildIds, userId, action) {
   }
 
   // execute query in session
-  getDB().guilds.updateMany({
+  await getDB().guilds.updateMany({
     _id: {
       $in: guildIds.map(id => Long.fromString(id))
     }
@@ -22,11 +22,11 @@ function updateSupportersForGuilds(session, guildIds, userId, action) {
   return true;
 }
 
-function updateSupporting(session, userId, supporterUpdate) {
+async function updateSupporting(session, userId, supporterUpdate) {
   if (supporterUpdate.toAdd.length > 0)
-    updateSupportersForGuilds(session, userId, supporterUpdate.toAdd, "add");
-  if (supportersUpdate.toRemove.length > 0)
-    updateSupportersForGuilds(session, userId, supporterUpdate.toRemove, "remove");
+    await updateSupportersForGuilds(session, userId, supporterUpdate.toAdd, "add");
+  if (supporterUpdate.toRemove.length > 0)
+    await updateSupportersForGuilds(session, userId, supporterUpdate.toRemove, "remove");
 }
 
 module.exports = {

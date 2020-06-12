@@ -52,9 +52,6 @@ async function handleWebhookResponse(signature, event, rawdata, data) {
       $set: {
         'patreon.tier': tier
       }
-    },
-    {
-      returnOriginal: false
     }
   );
 

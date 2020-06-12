@@ -5,9 +5,7 @@ const { hasPermission } = require('../../helpers/discord');
 const { tierEnum } = require('../../models/patreon/tier');
 const { DiscordUser } = require("discord-user-js");
 const { getTier, hasGuildFlags, hasPatreonLinked } = require("../user/user");
-
-const userNotFoundError = new Error("user not found");
-const discordCallError = new Error("Discord failed to be called");
+const { userNotFoundError, discordCallError } = require("../../helpers/errors");
 
 async function getUserGuilds(userId, {accessToken, refreshToken}) {
   try {
@@ -31,7 +29,7 @@ async function getIncorrectSupportingFromUser(session, userId) {
   const user = await getDB().users.findOne(
     { _id: Long.fromString(userId) }
   );
-  if (!user) throw userNotFoundError;
+  if (!user) throw new Error(userNotFoundError);
 
   if (!user.blacklist) user.blacklist = [];
   let blacklist = user.blacklist.map((val) => val.toString());
@@ -49,9 +47,11 @@ async function getIncorrectSupportingFromUser(session, userId) {
     }
   }
 
+  console.log("calling discord");
+
   const userGuilds = await getUserGuilds(userId, user);
   if (userGuilds === false)
-    throw discordCallError;
+    throw new Error(discordCallError);
 
   const updateObj = {
     toRemove: [],

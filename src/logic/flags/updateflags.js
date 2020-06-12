@@ -1,5 +1,6 @@
 const { Long } = require("mongodb");
 const { validateFlags } = require("../../helpers/flags");
+const { userNotFoundError } = require("../../helpers/errors");
 
 function traversePath(obj, path) {
   if (!obj)
@@ -32,9 +33,10 @@ async function updateFlags(session, collection, path, id, query, { add, remove, 
     // get old flags
     let oldFlags = await collection.findOne(filterQuery, { session });
     if (!oldFlags)
-      return false;
+      throw new Error(userNotFoundError);
 
     flags = traversePath(oldFlags, path);
+    if (!flags) flags = []
 
     // filter out every name in remove[] and add[]
     flags = flags.filter((val) => {

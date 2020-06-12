@@ -1,139 +1,101 @@
 const express = require("express");
 const router = express.Router({mergeParams: true});
 const { sendResponse, send404, hasKey, sendInvalid, sendError } = require("../helpers/utils");
-const { getDB } = require("../setup/db");
-const { Long } = require("mongodb");
-const { correctGuildSupporter, userNotFoundError } = require("../models/patreon/supporter");
-const { getHighestTier, tierEnum } = require("../models/patreon/tier");
+const { userNotFoundError } = require("../helpers/errors");
 
+const { updateGuildSupporter } = require("../logic/supporter/guildSupporter");
+const { updatePatreonTier, unlinkPatreon } = require("../logic/patreon/linking");
+const { addToBlacklist, removeFromBlacklist } = require("../logic/user/blacklist");
+const { updateUserFlags } = require("../logic/flags/user");
+
+// json parse middleware
 const bodyParser = require("body-parser");
 router.use(bodyParser.json());
+
+// api key check middleware
 router.use(hasKey);
 
-router.post("/link/:patreonid", async (req, res) => {
+// execution handler
+function executionHandler(next) {
+  return async (req, res) => {
+    try {
+      const n = next(req, res);
+      if (n instanceof Promise)
+        await n;
+    } catch (e) {
+      if (e instanceof Error) {
+        if (e.message === userNotFoundError) {
+          return send404(res);
+        }
+      }
+      // TODO log errors properly
+      console.log(e);
+      return sendError(res);
+    }
+
+    sendResponse(res);
+  };
+}
+
+router.patch("/updatetier/:patreonid", executionHandler(async (req, res) => {
   const { userid, patreonid } = req.params;
 
   if (!userid || !patreonid) {
     return sendInvalid(res);
   }
 
-  try {
-    let patron = await getDB().patrons.findOne(
-      { _id: patreonid }
-    );
+  // TODO optimisation, only trigger update when tier got updated
+  await updateGuildSupporter(userid, async (session) => {
+    return await updatePatreonTier(session, patreonid, userid);
+  }, true)
+}));
 
-    if (!patron) {
-      patron = {};
-      patron.tiers = [];
-    }
-    const tier = getHighestTier(patron.tiers);
-    const user = await getDB().users.findOneAndUpdate(
-      { _id: Long.fromString(userid) },
-      {
-        $set: {
-          'patreon.tier': tier
-        }
-      }
-    );
-    if (!user.value) {
-      return send404(res);
-    }
-    await correctGuildSupporter(userid);
-  } catch (e) {
-    console.log(e);
-    return sendError(res);
-  }
-  sendResponse(res);
-});
-
-router.post("/unlink", async (req, res) => {
+router.post("/unlink", executionHandler(async (req, res) => {
   const { userid } = req.params;
 
   if (!userid) {
     return sendInvalid(res);
   }
 
-  try {
-    const user = await getDB().users.findOneAndUpdate(
-      { _id: Long.fromString(userid) },
-      {
-        $set: {
-          'patreon.isLinkedPatreon': false,
-          'patreon.tier': tierEnum.default
-        }
-      }
-    );
-    if (!user.value) {
-      return send404(res);
-    }
-    await correctGuildSupporter(userid);
-  } catch (e) {
-    return sendError(res);
-  }
-  sendResponse(res);
-});
+  // TODO optimisation, only trigger update when tier got updated
+  await updateGuildSupporter(userid, async (session, uid) => {
+    return await unlinkPatreon(session, uid);
+  }, true)
+}));
 
-router.post("/update", async (req, res) => {
-  try {
-    await correctGuildSupporter(req.params.userid);
-  } catch (e) {
-    if (e === userNotFoundError) {
-      return send404(res);
-    }
-    return sendError(res);
-  }
-  sendResponse(res);
-});
+router.post("/update", executionHandler(async (req, res) => {
+  const { userid } = req.params;
 
-router.delete("/guilds/:guildid", async (req, res) => {
+  if (!userid) {
+    return sendInvalid(res);
+  }
+
+  await updateGuildSupporter(userid, undefined, false);
+}));
+
+router.delete("/guilds/:guildid", executionHandler(async (req, res) => {
   const { userid, guildid } = req.params
 
   if (!userid || !guildid) {
     return sendInvalid(res);
   }
-  const oldUser = await getDB().users.findOneAndUpdate({
-    _id: Long.fromString(userid)
-  }, {
-    $addToSet: {
-      blacklist: Long.fromString(guildid)
-    }
-  });
-  if (!oldUser || oldUser.value === null) {
-    return send404(res);
-  }
-  try {
-    await correctGuildSupporter(userid)
-  } catch (e) {
-    return sendError(res);
-  }
-  sendResponse(res);
-});
 
-router.post("/guilds/:guildid", async (req, res) => {
+  await addToBlacklist(undefined, userid, guildid);
+}));
+
+router.post("/guilds/:guildid", executionHandler(async (req, res) => {
   const { userid, guildid } = req.params
 
   if (!userid || !guildid) {
     return sendInvalid(res);
   }
-  const oldUser = await getDB().users.findOneAndUpdate({
-    _id: Long.fromString(userid)
-  }, {
-    $pull: {
-      blacklist: Long.fromString(guildid)
-    }
-  });
-  if (!oldUser || oldUser.value === null) {
-    return send404(res);
-  }
-  try {
-    await correctGuildSupporter(userid)
-  } catch (e) {
-    return sendError(res);
-  }
-  sendResponse(res);
-});
 
-router.patch("/flags", async (req, res) => {
+  await updateGuildSupporter(userid, async (session) => {
+    return await removeFromBlacklist(session, userid, guildid);
+  }, false)
+}));
+
+router.patch("/flags", executionHandler(async (req, res) => {
   // TODO gifting system
   const { userid } = req.params;
   if (!req.body || Object.keys(req.body).length == 0) return sendInvalid(res);
@@ -142,56 +104,14 @@ router.patch("/flags", async (req, res) => {
   if (!add) add = [];
   if (!remove) remove = [];
 
-  const bulk = getDB().users.initializeOrderedBulkOp();
-  let querycount = 0;
-  if (clear === true) {
-    bulk.find({
-      _id: Long.fromString(userid),
-      accessToken: {
-        $exists: true
-      }
-    }).updateOne({
-      $set: {
-        flags: add
-      }
-    });
-    querycount = 1;
-  } else {
-    bulk.find({
-      _id: Long.fromString(userid),
-      accessToken: {
-        $exists: true
-      }
-    }).updateOne({
-      $pullAll: {
-        flags: remove
-      }
-    });
-    bulk.find({
-      _id: Long.fromString(userid),
-      accessToken: {
-        $exists: true
-      }
-    }).updateOne({
-      $addToSet: {
-        flags: {
-          $each: add
-        }
-      }
-    });
-    querycount = 2;
-  }
-  const bulkRes = await bulk.execute();
-  if (bulkRes.nMatched != querycount) {
-    return send404(res);
-  }
-  try {
-    // TODO if modlog flag gets changed, force modlog
-    await correctGuildSupporter(userid)
-  } catch (e) {
-    return sendError(res);
-  }
-  sendResponse(res);
-});
+  // TODO validate add and remove
+
+  if (add.length == 0 &&
+    remove.length == 0 &&
+    clear !== true)
+    return sendResponse(res);
+
+  await updateUserFlags(userid, clear, add, remove);
+}));
 
 module.exports = router;

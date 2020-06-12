@@ -1,6 +1,7 @@
 const { updateSupporting } = require("./updateSupporters");
 const { getIncorrectSupportingFromUser } = require("./guildIncorrect");
 const { updateGuildDataForGuildIds } = require("../guilddata");
+const { getDB } = require("../../setup/db");
 
 async function updateGuildSupporter(userId, action, hasFlagChange) {
   // start db transaction

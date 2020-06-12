@@ -1,10 +1,40 @@
 const express = require("express");
 const router = express.Router({mergeParams: true});
-const { Long } = require("mongodb");
 const { sendResponse, send404, hasKey, sendInvalid } = require("../helpers/utils");
-const { getDB } = require("../setup/db");
+const { userNotFoundError } = require("../helpers/errors");
 
-router.patch("/flags", hasKey, async (req, res) => {
+const { updateGuildFlags } = require("../logic/flags/guild");
+
+// json parse middleware
+const bodyParser = require("body-parser");
+router.use(bodyParser.json());
+
+// api key check middleware
+router.use(hasKey);
+
+// execution handler
+function executionHandler(next) {
+  return async (req, res) => {
+    try {
+      const n = next(req, res);
+      if (n instanceof Promise)
+        await n;
+    } catch (e) {
+      if (e instanceof Error) {
+        if (e.message === userNotFoundError) {
+          return send404(res);
+        }
+      }
+      // TODO log errors properly
+      console.log(e);
+      return sendError(res);
+    }
+
+    sendResponse(res);
+  };
+}
+
+router.patch("/flags", executionHandler(async (req, res) => {
   const { guildid } = req.params;
   if (!req.body || Object.keys(req.body).length == 0) return sendInvalid(res);
   let { add, remove, clear } = req.body
@@ -12,42 +42,14 @@ router.patch("/flags", hasKey, async (req, res) => {
   if (!add) add = [];
   if (!remove) remove = [];
 
-  const bulk = getDB().guilds.initializeOrderedBulkOp();
-  let querycount = 0;
-  if (clear === true) {
-    bulk.find({
-      _id: Long.fromString(guildid)
-    }).updateOne({
-      $set: {
-        flags: add
-      }
-    });
-    querycount = 1;
-  } else {
-    bulk.find({
-      _id: Long.fromString(guildid)
-    }).updateOne({
-      $pullAll: {
-        flags: remove
-      }
-    });
-    bulk.find({
-      _id: Long.fromString(guildid)
-    }).updateOne({
-      $addToSet: {
-        flags: {
-          $each: add
-        }
-      }
-    });
-    querycount = 2;
-  }
-  const bulkRes = await bulk.execute();
-  if (bulkRes.nMatched != querycount) {
-    return send404(res);
-  }
-  // TODO if modlog flag gets changed, force modlog
-  sendResponse(res);
-});
+  // TODO validate add and remove
+
+  if (add.length == 0 &&
+    remove.length == 0 &&
+    clear !== true)
+    return sendResponse(res);
+
+  await updateGuildFlags(guildid, clear, add, remove);
+}));
 
 module.exports = router;
